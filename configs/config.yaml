@@ -1,0 +1,11 @@
+audio:
+  sample_rate: 16000
+  duration: 6
+
+paths:
+  raw_audio: data/raw_audio
+  processed_audio: data/processed_audio
+  embeddings: data/embeddings
+
+model:
+  threshold: 0.80

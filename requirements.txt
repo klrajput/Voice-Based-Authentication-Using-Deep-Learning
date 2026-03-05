@@ -1,0 +1,10 @@
+numpy
+librosa
+sounddevice
+scipy
+scikit-learn
+speechbrain
+torch
+torchaudio
+noisereduce
+pyyaml
