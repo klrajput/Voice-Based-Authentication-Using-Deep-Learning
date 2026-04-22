@@ -20,4 +20,4 @@ def extract_features(file_path):
     # extract embedding
     embedding = verification.encode_batch(signal)
 
-    return embedding.squeeze().detach().numpy()
+    return embedding.numpy()

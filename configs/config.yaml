@@ -8,4 +8,4 @@ paths:
   embeddings: data/embeddings
 
 model:
-  threshold: 0.80
+  threshold: 0.60
