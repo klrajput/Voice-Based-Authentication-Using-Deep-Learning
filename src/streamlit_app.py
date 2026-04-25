@@ -18,9 +18,11 @@ from security.antispoof import detect_spoof
 from security.encryption import encrypt_file, decrypt_file
 
 import tempfile
-def record_voice_streamlit():
-    audio = st.audio_input("🎤 Record your voice")
+def record_voice_streamlit(key=None):
+    audio = st.audio_input("🎤 Record your voice", key=key)
+
     if audio is not None:
+        import tempfile
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
             f.write(audio.read())
             return f.name
@@ -587,7 +589,7 @@ def locked_count():
 def run_voice(label_key_suffix=""):
     """Record one voice sample, returns (success: bool, score: float)."""
     st.markdown(wv(), unsafe_allow_html=True)
-    raw = record_voice_streamlit()
+    raw = record_voice_streamlit(key="login_audio")
     if raw is None:
         st.warning("Please record audio first")
         return False, 0.0
@@ -630,7 +632,8 @@ def page_register():
             for i in range(5):
                 st.warning(f"🎙️  Sample {i+1}/5 — speak now")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw = record_voice_streamlit()
+                for i in range(5):
+                    raw = record_voice_streamlit(key=f"register_audio_{i}")
                 if raw is None:
                     st.warning("Please record audio first")
                     continue
@@ -900,7 +903,7 @@ def page_edit_profile():
             for i in range(5):
                 st.info(f"🎙️ Recording {i+1}/5 — speak your unlock phrase")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw = record_voice_streamlit()
+                raw = record_voice_streamlit(key="edit_audio")
                 if raw is None:
                     st.warning("Please record audio first")
                     continue
