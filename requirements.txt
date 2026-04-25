@@ -1,11 +1,13 @@
+streamlit
 numpy
+scikit-learn
 librosa
+noisereduce
 sounddevice
 scipy
-scikit-learn
+soundfile
+pyyaml
 speechbrain
 torch
 torchaudio
-noisereduce
-pyyaml
-streamlit
+cryptography

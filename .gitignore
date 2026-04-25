@@ -1,8 +1,20 @@
-venv/
-data/raw_audio/
-data/processed_audio/
-data/embeddings/
-*.wav
-*.npy
-*.csv
+# Virtual env
+.venv/
+env/
+
+# Python cache
 __pycache__/
+*.pyc
+
+# Data & models
+data/
+models/
+
+# OS files
+.DS_Store
+
+# Streamlit cache
+.streamlit/
+
+# Logs
+*.log
