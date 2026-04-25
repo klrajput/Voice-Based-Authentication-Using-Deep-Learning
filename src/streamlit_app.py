@@ -9,14 +9,23 @@ import shutil
 import datetime
 import streamlit as st
 
-from audio.preprocess        import preprocess_audio
-from audio.recorder          import record_voice
+from audio.preprocess import preprocess_audio
 from features.extract_features import extract_features
 from learning.continual_learning import save_multiple_embeddings
-from model.profile_manager   import load_profile, reset_profile
-from model.verify_voice      import verify_voice
-from security.antispoof      import detect_spoof
-from security.encryption     import encrypt_file, decrypt_file
+from model.profile_manager import load_profile, reset_profile
+from model.verify_voice import verify_voice
+from security.antispoof import detect_spoof
+from security.encryption import encrypt_file, decrypt_file
+
+import tempfile
+def record_voice_streamlit():
+    audio = st.audio_input("🎤 Record your voice")
+    if audio is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+            f.write(audio.read())
+            return f.name
+    return None
+
 
 # SAFE NAVIGATION
 def navigate(page_name):
@@ -578,7 +587,10 @@ def locked_count():
 def run_voice(label_key_suffix=""):
     """Record one voice sample, returns (success: bool, score: float)."""
     st.markdown(wv(), unsafe_allow_html=True)
-    raw   = record_voice()
+    raw = record_voice_streamlit()
+    if raw is None:
+        st.warning("Please record audio first")
+        return False, 0.0
     proc  = preprocess_audio(raw)
     if detect_spoof(proc):
         log_act("⚠️", "Spoof attempt blocked — liveness check failed")
@@ -618,7 +630,10 @@ def page_register():
             for i in range(5):
                 st.warning(f"🎙️  Sample {i+1}/5 — speak now")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw  = record_voice()
+                raw = record_voice_streamlit()
+                if raw is None:
+                    st.warning("Please record audio first")
+                    continue
                 proc = preprocess_audio(raw)
                 emb  = extract_features(proc)
                 embeddings.append(emb)
@@ -885,7 +900,10 @@ def page_edit_profile():
             for i in range(5):
                 st.info(f"🎙️ Recording {i+1}/5 — speak your unlock phrase")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw  = record_voice()
+                raw = record_voice_streamlit()
+                if raw is None:
+                    st.warning("Please record audio first")
+                    continue
                 proc = preprocess_audio(raw)
                 emb  = extract_features(proc)
                 embeddings.append(emb)
