@@ -8,6 +8,7 @@ import base64
 import shutil
 import datetime
 import uuid
+import hashlib
 import streamlit as st
 
 from audio.preprocess        import preprocess_audio
@@ -578,6 +579,12 @@ def capture_audio_bytes(key, label):
     return audio.getvalue()
 
 
+def audio_fingerprint(audio_bytes):
+    if not audio_bytes:
+        return None
+    return hashlib.sha256(audio_bytes).hexdigest()
+
+
 def save_audio_bytes(audio_bytes):
     os.makedirs("data/raw_audio", exist_ok=True)
     filename = os.path.join("data/raw_audio", f"{uuid.uuid4()}.wav")
@@ -687,11 +694,13 @@ def page_login():
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Voice Biometric Scan")
     audio_bytes = capture_audio_bytes("login_audio", "Record Voice Sample")
-    if st.button("🎙️  Record My Voice", key="btn_login_voice"):
+    audio_hash = audio_fingerprint(audio_bytes)
+    if audio_hash and st.session_state.get("lv_hash") != audio_hash:
         with st.spinner("Scanning…"):
             ok, sc = run_voice(audio_bytes)
         st.session_state["lv_ok"] = ok
         st.session_state["lv_sc"] = sc
+        st.session_state["lv_hash"] = audio_hash
 
     sc = st.session_state.get("lv_sc", 0.0)
     score_bar(sc)
@@ -956,11 +965,13 @@ def page_reset():
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Verify Your Identity")
     audio_bytes = capture_audio_bytes("reset_audio", "Record Voice Sample")
-    if st.button("🎙️  Record Voice to Confirm", key="btn_reset_voice"):
+    audio_hash = audio_fingerprint(audio_bytes)
+    if audio_hash and st.session_state.get("rv_hash") != audio_hash:
         with st.spinner("Verifying…"):
             ok, sc = run_voice(audio_bytes)
         st.session_state["rv_ok"] = ok
         st.session_state["rv_sc"] = sc
+        st.session_state["rv_hash"] = audio_hash
 
     r_sc = st.session_state.get("rv_sc", 0.0)
     score_bar(r_sc)
@@ -1081,11 +1092,13 @@ def page_unlock():
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Voice Biometric Scan")
     audio_bytes = capture_audio_bytes("unlock_audio", "Record Voice Sample")
-    if st.button("🎙️  Record Voice to Unlock", key="btn_unlock_voice"):
+    audio_hash = audio_fingerprint(audio_bytes)
+    if audio_hash and st.session_state.get("uv_hash") != audio_hash:
         with st.spinner("Verifying biometric…"):
             ok, sc = run_voice(audio_bytes)
         st.session_state["uv_ok"] = ok
         st.session_state["uv_sc"] = sc
+        st.session_state["uv_hash"] = audio_hash
         st.session_state["last_score"] = sc
 
     u_sc = st.session_state.get("uv_sc", 0.0)
