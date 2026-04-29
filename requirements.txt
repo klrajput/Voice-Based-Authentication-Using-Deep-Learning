@@ -11,3 +11,6 @@ speechbrain
 torch
 torchaudio
 cryptography
+flair
+spacy
+torchcodec
