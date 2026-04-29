@@ -623,6 +623,12 @@ def page_register():
     st.markdown(ring("👤"), unsafe_allow_html=True)
     steps(0, ["Identity","Phrase","Voice","Done"])
 
+    if load_user() is not None:
+        st.info("This app supports a single user. Please log in.")
+        card_close()
+        navigate("🔑 Login")
+        return
+
     col1, col2 = st.columns(2)
     with col1:
         name   = st.text_input("Full Name",     placeholder="Enter your name…",          key="reg_name")
@@ -1183,7 +1189,7 @@ def main():
         nav = ["👤 Register"]
         default = "👤 Register"
     elif not logged_in:
-        nav = ["🔑 Login", "👤 Register"]
+        nav = ["🔑 Login"]
         default = "🔑 Login"
     else:
         nav = ["🏠 Dashboard","🔒 Lock File","🔓 Unlock File","✏️ Edit Profile","🔄 Reset Profile"]
