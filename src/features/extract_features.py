@@ -1,4 +1,5 @@
-import torchaudio
+import librosa
+import numpy as np
 import torch
 from speechbrain.inference.speaker import SpeakerRecognition
 
@@ -10,12 +11,11 @@ verification = SpeakerRecognition.from_hparams(
 
 def extract_features(file_path):
 
-    # load audio
-    signal, fs = torchaudio.load(file_path)
-
-    # convert to mono if needed
-    if signal.shape[0] > 1:
-        signal = torch.mean(signal, dim=0, keepdim=True)
+    # load audio and resample to 16 kHz to match the model
+    audio, _ = librosa.load(file_path, sr=16000, mono=True)
+    if audio.size == 0:
+        raise ValueError("Empty audio signal")
+    signal = torch.from_numpy(np.asarray(audio, dtype=np.float32)).unsqueeze(0)
 
     # extract embedding
     embedding = verification.encode_batch(signal)
