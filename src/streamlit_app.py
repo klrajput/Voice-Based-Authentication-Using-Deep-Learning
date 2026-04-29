@@ -7,10 +7,10 @@ import json
 import base64
 import shutil
 import datetime
+import uuid
 import streamlit as st
 
 from audio.preprocess        import preprocess_audio
-from audio.recorder          import record_voice
 from features.extract_features import extract_features
 from learning.continual_learning import save_multiple_embeddings
 from model.profile_manager   import load_profile, reset_profile
@@ -571,14 +571,32 @@ def locked_count():
     return len([x for x in os.listdir(LOCK_FOLDER) if x.endswith(".enc")])
 
 
+def capture_audio_bytes(key, label):
+    audio = st.audio_input(label, key=key)
+    if audio is None:
+        return None
+    return audio.getvalue()
+
+
+def save_audio_bytes(audio_bytes):
+    os.makedirs("data/raw_audio", exist_ok=True)
+    filename = os.path.join("data/raw_audio", f"{uuid.uuid4()}.wav")
+    with open(filename, "wb") as f:
+        f.write(audio_bytes)
+    return filename
+
+
 # ════════════════════════════════════════════════════════════
 #  VOICE  AUTH  CORE
 # ════════════════════════════════════════════════════════════
 
-def run_voice(label_key_suffix=""):
-    """Record one voice sample, returns (success: bool, score: float)."""
+def run_voice(audio_bytes):
+    """Process one voice sample, returns (success: bool, score: float)."""
     st.markdown(wv(), unsafe_allow_html=True)
-    raw   = record_voice()
+    if not audio_bytes:
+        st.error("Please record your voice using the recorder above.")
+        return False, 0.0
+    raw   = save_audio_bytes(audio_bytes)
     proc  = preprocess_audio(raw)
     if detect_spoof(proc):
         log_act("⚠️", "Spoof attempt blocked — liveness check failed")
@@ -606,19 +624,27 @@ def page_register():
 
     photo_f = st.file_uploader("Profile Photo  (optional)", type=["png","jpg","jpeg"], key="reg_photo")
 
+    s1 = capture_audio_bytes("reg_audio_1", "Voice Sample 1")
+    s2 = capture_audio_bytes("reg_audio_2", "Voice Sample 2")
+    s3 = capture_audio_bytes("reg_audio_3", "Voice Sample 3")
+    s4 = capture_audio_bytes("reg_audio_4", "Voice Sample 4")
+    s5 = capture_audio_bytes("reg_audio_5", "Voice Sample 5")
+
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     if st.button("⚡  Begin Voice Registration", key="btn_reg"):
         if not name.strip() or not phrase.strip():
             st.error("Please fill in both Name and Unlock Phrase")
+        elif not all([s1, s2, s3, s4, s5]):
+            st.error("Please record all 5 voice samples before continuing")
         else:
             st.info("🎤 Recording 5 voice samples. Speak your unlock phrase each time.")
             embeddings = []
             prog = st.progress(0)
-            for i in range(5):
-                st.warning(f"🎙️  Sample {i+1}/5 — speak now")
+            for i, audio_bytes in enumerate([s1, s2, s3, s4, s5]):
+                st.warning(f"🎙️  Sample {i+1}/5 — processing")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw  = record_voice()
+                raw  = save_audio_bytes(audio_bytes)
                 proc = preprocess_audio(raw)
                 emb  = extract_features(proc)
                 embeddings.append(emb)
@@ -660,9 +686,10 @@ def page_login():
     # ─ Step 1: Voice ─────────────────────────────────
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Voice Biometric Scan")
+    audio_bytes = capture_audio_bytes("login_audio", "Record Voice Sample")
     if st.button("🎙️  Record My Voice", key="btn_login_voice"):
         with st.spinner("Scanning…"):
-            ok, sc = run_voice("_login")
+            ok, sc = run_voice(audio_bytes)
         st.session_state["lv_ok"] = ok
         st.session_state["lv_sc"] = sc
 
@@ -879,13 +906,22 @@ def page_edit_profile():
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     with st.expander("🎤  Re-record Voice Samples"):
         st.warning("This replaces your existing voice model with 5 new recordings.")
+        r1 = capture_audio_bytes("rerec_audio_1", "Voice Sample 1")
+        r2 = capture_audio_bytes("rerec_audio_2", "Voice Sample 2")
+        r3 = capture_audio_bytes("rerec_audio_3", "Voice Sample 3")
+        r4 = capture_audio_bytes("rerec_audio_4", "Voice Sample 4")
+        r5 = capture_audio_bytes("rerec_audio_5", "Voice Sample 5")
         if st.button("🔴  Start Voice Re-recording", key="btn_rerecord"):
+            if not all([r1, r2, r3, r4, r5]):
+                st.error("Please record all 5 voice samples before continuing")
+                card_close()
+                return
             embeddings = []
             prog = st.progress(0)
-            for i in range(5):
-                st.info(f"🎙️ Recording {i+1}/5 — speak your unlock phrase")
+            for i, audio_bytes in enumerate([r1, r2, r3, r4, r5]):
+                st.info(f"🎙️ Recording {i+1}/5 — processing")
                 st.markdown(wv(), unsafe_allow_html=True)
-                raw  = record_voice()
+                raw  = save_audio_bytes(audio_bytes)
                 proc = preprocess_audio(raw)
                 emb  = extract_features(proc)
                 embeddings.append(emb)
@@ -919,9 +955,10 @@ def page_reset():
     # ─ Voice auth ─────────────────────────────────────
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Verify Your Identity")
+    audio_bytes = capture_audio_bytes("reset_audio", "Record Voice Sample")
     if st.button("🎙️  Record Voice to Confirm", key="btn_reset_voice"):
         with st.spinner("Verifying…"):
-            ok, sc = run_voice("_reset")
+            ok, sc = run_voice(audio_bytes)
         st.session_state["rv_ok"] = ok
         st.session_state["rv_sc"] = sc
 
@@ -1043,9 +1080,10 @@ def page_unlock():
     # ─ Step 1: Voice ─────────────────────────────────
     st.markdown('<div class="sv-sb">', unsafe_allow_html=True)
     sl("Step 1 — Voice Biometric Scan")
+    audio_bytes = capture_audio_bytes("unlock_audio", "Record Voice Sample")
     if st.button("🎙️  Record Voice to Unlock", key="btn_unlock_voice"):
         with st.spinner("Verifying biometric…"):
-            ok, sc = run_voice("_unlock")
+            ok, sc = run_voice(audio_bytes)
         st.session_state["uv_ok"] = ok
         st.session_state["uv_sc"] = sc
         st.session_state["last_score"] = sc
